@@ -1,0 +1,23 @@
+{
+  "name": "discord-kasa-calender-bot",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/J3rey/Discord-KASA-Calender-Bot.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/J3rey/Discord-KASA-Calender-Bot/issues"
+  },
+  "homepage": "https://github.com/J3rey/Discord-KASA-Calender-Bot#readme",
+  "description": "",
+  "dependencies": {
+    "discord.js": "^14.21.0"
+  }
+}
