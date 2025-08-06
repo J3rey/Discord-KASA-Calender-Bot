@@ -1,0 +1,9 @@
+npm install discord.js
+
+npm install mongoose
+
+npm install dotenv
+
+or
+
+npm install discord.js mongoose dotenv
