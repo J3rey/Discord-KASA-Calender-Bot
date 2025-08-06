@@ -19,7 +19,8 @@
   "description": "",
   "dependencies": {
     "discord.js": "^14.21.0",
-    "dotenv": "^17.2.0",
-    "mongodb": "^6.18.0"
+    "dotenv": "^17.2.1",
+    "mongodb": "^6.18.0",
+    "mongoose": "^8.17.0"
   }
 }
