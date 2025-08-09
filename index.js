@@ -134,15 +134,17 @@ client.on('messageCreate', async (message) => {
   const args = message.content.slice(PREFIX.length).trim().split(/ +/);
   const command = args.shift().toLowerCase();
 
-  if (command === 'help') {
+  if (command === 'helpbot') {
     message.channel.send(`**Commands:**  
-/help
+/helpbot
 /setchannel [#channel] - Set the reminder channel. Defaults to first text channel.  
 /schedule [event name] on the [dd/mm/yyyy] [HH:mmAM/PM] [Location] - Schedule an event.  
 /showschedule - Show all events with planning and marketing dates.  
 /showeventschedule - Show only event planning dates.  
 /showevents - Show only event dates.  
-/showmarketingschedule - Show only marketing dates.`);
+/showmarketingschedule - Show only marketing dates.
+/deleteevent [event name] - Delete a specific event.
+/clearschedule - Delete all events (requires confirmation).`);
   }
 
   else if (command === 'setchannel') {
@@ -199,8 +201,15 @@ client.on('messageCreate', async (message) => {
     if (events.length === 0) return message.reply('No events scheduled.');
 
     const lines = events.map(ev => {
-      const dayMonth = ev.date.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit' });
-      return `Events start planning for **${ev.name}** on ${dayMonth}\nGraphics start for **${ev.name}** on ${dayMonth}\n${ev.name}, ${ev.date.toLocaleDateString('en-GB')}, ${ev.date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}, ${ev.location}`;
+      const eventDate = ev.date.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit' });
+      const planningDate = new Date(ev.date.getTime() - (17 * 24 * 60 * 60 * 1000))
+        .toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit' });
+      const marketingDate = new Date(ev.date.getTime() - (7 * 24 * 60 * 60 * 1000))
+        .toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit' });
+
+      return `${planningDate}, Events start planning for **${ev.name}**\n` +
+             `${marketingDate}, Graphics start for **${ev.name}**\n` +
+             `**${ev.name}**, ${eventDate}, ${ev.date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}, ${ev.location}`;
     });
 
     message.channel.send(lines.join('\n\n'));
@@ -239,6 +248,74 @@ client.on('messageCreate', async (message) => {
     });
 
     message.channel.send(lines.join('\n'));
+  }
+
+  else if (command === 'clearschedule') {
+    // Check if user has manage server permissions
+    if (!message.member.permissions.has(PermissionsBitField.Flags.ManageGuild)) {
+      return message.reply('You need Manage Server permissions to clear the schedule.');
+    }
+
+    // Ask for confirmation
+    const confirm = await message.channel.send('Are you sure you want to delete ALL events? Reply with "yes" to confirm.');
+    
+    try {
+      const response = await message.channel.awaitMessages({
+        filter: m => m.author.id === message.author.id,
+        max: 1,
+        time: 30000,
+        errors: ['time']
+      });
+
+      if (response.first().content.toLowerCase() === 'yes') {
+        await Event.deleteMany({ guildId: message.guild.id });
+        message.channel.send('All events have been deleted.');
+      } else {
+        message.channel.send('Operation cancelled.');
+      }
+    } catch (err) {
+      message.channel.send('No response received, operation cancelled.');
+    }
+  }
+
+  else if (command === 'deleteevent') {
+    // Check if user has manage server permissions
+    if (!message.member.permissions.has(PermissionsBitField.Flags.ManageGuild)) {
+      return message.reply('You need Manage Server permissions to delete events.');
+    }
+
+    // Get event name from arguments
+    const eventName = args.join(' ');
+    if (!eventName) {
+      return message.reply('Please provide the name of the event to delete. Usage: `/deleteevent [event name]`');
+    }
+
+    // Find and delete the event
+    const event = await Event.findOne({ guildId: message.guild.id, name: eventName });
+    if (!event) {
+      return message.reply('Event not found.');
+    }
+
+    // Ask for confirmation
+    const confirm = await message.channel.send(`Are you sure you want to delete the event **${eventName}**? Reply with "yes" to confirm.`);
+    
+    try {
+      const response = await message.channel.awaitMessages({
+        filter: m => m.author.id === message.author.id,
+        max: 1,
+        time: 30000,
+        errors: ['time']
+      });
+
+      if (response.first().content.toLowerCase() === 'yes') {
+        await Event.deleteOne({ _id: event._id });
+        message.channel.send(`Event **${eventName}** has been deleted.`);
+      } else {
+        message.channel.send('Operation cancelled.');
+      }
+    } catch (err) {
+      message.channel.send('No response received, operation cancelled.');
+    }
   }
 });
 
