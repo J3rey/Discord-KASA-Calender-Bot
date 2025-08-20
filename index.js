@@ -25,6 +25,8 @@ mongoose.connect(process.env.MONGO_URI, { useNewUrlParser: true, useUnifiedTopol
   .then(() => console.log('Connected to MongoDB'))
   .catch(console.error);
 
+const scheduledTimeouts = new Map(); // eventId -> [timeout1, timeout2, timeout3]
+
 // Helper: parse schedule command arguments
 function parseScheduleArgs(content) {
   // Expected format:
@@ -80,6 +82,11 @@ function parseScheduleArgs(content) {
 
 // Helper: schedule reminders for an event
 async function scheduleReminders(event) {
+  // Clear previous timeouts for this event
+  if (scheduledTimeouts.has(event._id.toString())) {
+    scheduledTimeouts.get(event._id.toString()).forEach(timeout => clearTimeout(timeout));
+  }
+
   const now = new Date();
 
   const guild = await client.guilds.fetch(event.guildId).catch(() => null);
@@ -92,7 +99,6 @@ async function scheduleReminders(event) {
     channel = guild.channels.cache.get(settings.reminderChannelId);
   }
 
-  // If no set channel or invalid, pick first text channel in guild
   if (!channel) {
     channel = guild.channels.cache
       .filter(c => c.type === ChannelType.GuildText && c.permissionsFor(guild.members.me).has(PermissionsBitField.Flags.SendMessages))
@@ -102,13 +108,13 @@ async function scheduleReminders(event) {
   if (!channel) return;
 
   const msPerDay = 24 * 60 * 60 * 1000;
+  const timeouts = [];
 
-  // Schedule reminders for 17, 8, and 7 days before event
   [17, 8, 7].forEach(daysBefore => {
     const reminderTime = new Date(event.date.getTime() - daysBefore * msPerDay);
     if (reminderTime > now) {
       const delay = reminderTime.getTime() - now.getTime();
-      setTimeout(async () => {
+      const timeout = setTimeout(async () => {
         if (!channel) return;
 
         if (daysBefore === 17) {
@@ -119,8 +125,12 @@ async function scheduleReminders(event) {
           channel.send(`<@&${process.env.MARKETING_ROLE_ID}> <@&${process.env.DESIGN_ROLE_ID}> Please begin marketing for **${event.name}**`);
         }
       }, delay);
+      timeouts.push(timeout);
     }
   });
+
+  // Store new timeouts for this event
+  scheduledTimeouts.set(event._id.toString(), timeouts);
 }
 
 // Command prefix
