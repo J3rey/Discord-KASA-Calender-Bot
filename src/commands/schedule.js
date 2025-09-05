@@ -1,0 +1,34 @@
+const Event = require('../../models/Event');
+const { parseScheduleArgs } = require('../utils/dateParser');
+const { scheduleReminders } = require('../utils/reminderScheduler');
+
+module.exports = {
+  name: 'schedule',
+  description: 'Schedule a new event',
+  
+  async execute(message, args) {
+    const parsed = parseScheduleArgs(message.content);
+    if (!parsed) {
+      return message.reply('Invalid format. Use `/schedule [event name] on the [dd/mm/yyyy] [HH:mmAM/PM] [Location]`');
+    }
+
+    let event = await Event.findOne({ guildId: message.guild.id, name: parsed.name });
+    if (!event) {
+      event = new Event({
+        guildId: message.guild.id,
+        name: parsed.name,
+        date: parsed.date,
+        location: parsed.location,
+      });
+    } else {
+      // update existing event
+      event.date = parsed.date;
+      event.location = parsed.location;
+    }
+    await event.save();
+
+    scheduleReminders(event, message.client);
+
+    message.reply(`Event **${parsed.name}** scheduled for ${parsed.date.toLocaleString()} at ${parsed.location}`);
+  }
+};
