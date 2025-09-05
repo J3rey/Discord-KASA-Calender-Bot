@@ -10,9 +10,12 @@ module.exports = {
 
     const lines = events.map(ev => {
       const eventDate = ev.date.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit' });
-      const planningDate = new Date(ev.date.getTime() - (17 * 24 * 60 * 60 * 1000))
+      
+      // Use custom reminder dates if set, otherwise use defaults
+      const msPerDay = 24 * 60 * 60 * 1000;
+      const planningDate = (ev.planningReminderDate || new Date(ev.date.getTime() - (17 * msPerDay)))
         .toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit' });
-      const marketingDate = new Date(ev.date.getTime() - (7 * 24 * 60 * 60 * 1000))
+      const marketingDate = (ev.marketingReminderDate || new Date(ev.date.getTime() - (7 * msPerDay)))
         .toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit' });
 
       return `${planningDate}, Events start planning for **${ev.name}**\n` +

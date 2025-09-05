@@ -47,21 +47,21 @@ module.exports = {
     let updateMessage = '';
 
     if (command === 'changestart') {
-      // Calculate new event date (17 days after planning start)
-      const newEventDate = new Date(newDateTime.getTime() + (17 * msPerDay));
-      event.date = newEventDate;
-      updateMessage = `Planning start date updated to ${newDate}. Event date moved to ${newEventDate.toLocaleDateString('en-GB')}`;
+      // Only change the planning reminder date, don't affect event date
+      event.planningReminderDate = newDateTime;
+      updateMessage = `Planning start date updated to ${newDate}. Event date remains ${event.date.toLocaleDateString('en-GB')}`;
     } 
     else if (command === 'changemarketing') {
-      // Update event date to 7 days after marketing
-      const newEventDate = new Date(newDateTime.getTime() + (7 * msPerDay));
-      event.date = newEventDate;
-      updateMessage = `Marketing date updated to ${newDate}. Event date moved to ${newEventDate.toLocaleDateString('en-GB')}`;
+      // Only change the marketing reminder date, don't affect event date
+      event.marketingReminderDate = newDateTime;
+      updateMessage = `Marketing date updated to ${newDate}. Event date remains ${event.date.toLocaleDateString('en-GB')}`;
     }
     else if (command === 'changeremind') {
-      // Update the event date directly
+      // Update the event date and adjust all reminder dates accordingly
       event.date = newDateTime;
-      updateMessage = `Event date updated to ${newDate}`;
+      event.planningReminderDate = new Date(newDateTime.getTime() - (17 * msPerDay));
+      event.marketingReminderDate = new Date(newDateTime.getTime() - (7 * msPerDay));
+      updateMessage = `Event date updated to ${newDate}. All reminder dates have been adjusted accordingly.`;
     }
 
     // Save changes

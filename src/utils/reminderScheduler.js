@@ -39,24 +39,40 @@ async function scheduleReminders(event, client) {
   const msPerDay = 24 * 60 * 60 * 1000;
   const timeouts = [];
 
-  [17, 8, 7].forEach(daysBefore => {
-    const reminderTime = new Date(event.date.getTime() - daysBefore * msPerDay);
-    if (reminderTime > now) {
-      const delay = reminderTime.getTime() - now.getTime();
-      const timeout = setTimeout(async () => {
-        if (!channel) return;
+  // Calculate reminder dates - use custom dates if set, otherwise use defaults
+  const planningDate = event.planningReminderDate || new Date(event.date.getTime() - (17 * msPerDay));
+  const eventDetailsDate = new Date(event.date.getTime() - (8 * msPerDay)); // Always 8 days before event
+  const marketingDate = event.marketingReminderDate || new Date(event.date.getTime() - (7 * msPerDay));
 
-        if (daysBefore === 17) {
-          channel.send(`<@&${process.env.EVENTS_ROLE_ID}> Please begin planning for **${event.name}**`);
-        } else if (daysBefore === 8) {
-          channel.send(`<@&${process.env.EVENTS_ROLE_ID}> Please have the event details ready for marketing for **${event.name}**`);
-        } else if (daysBefore === 7) {
-          channel.send(`<@&${process.env.MARKETING_ROLE_ID}> <@&${process.env.DESIGN_ROLE_ID}> Please begin marketing for **${event.name}**`);
-        }
-      }, delay);
-      timeouts.push(timeout);
-    }
-  });
+  // Schedule planning reminder (17 days before or custom date)
+  if (planningDate > now) {
+    const delay = planningDate.getTime() - now.getTime();
+    const timeout = setTimeout(async () => {
+      if (!channel) return;
+      channel.send(`<@&${process.env.EVENTS_ROLE_ID}> Please begin planning for **${event.name}**`);
+    }, delay);
+    timeouts.push(timeout);
+  }
+
+  // Schedule event details reminder (always 8 days before event)
+  if (eventDetailsDate > now) {
+    const delay = eventDetailsDate.getTime() - now.getTime();
+    const timeout = setTimeout(async () => {
+      if (!channel) return;
+      channel.send(`<@&${process.env.EVENTS_ROLE_ID}> Please have the event details ready for marketing for **${event.name}**`);
+    }, delay);
+    timeouts.push(timeout);
+  }
+
+  // Schedule marketing reminder (7 days before or custom date)
+  if (marketingDate > now) {
+    const delay = marketingDate.getTime() - now.getTime();
+    const timeout = setTimeout(async () => {
+      if (!channel) return;
+      channel.send(`<@&${process.env.MARKETING_ROLE_ID}> <@&${process.env.DESIGN_ROLE_ID}> Please begin marketing for **${event.name}**`);
+    }, delay);
+    timeouts.push(timeout);
+  }
 
   // Schedule event cleanup (delete event 24 hours after it has passed)
   const cleanupTime = new Date(event.date.getTime() + msPerDay); // 24 hours after event
