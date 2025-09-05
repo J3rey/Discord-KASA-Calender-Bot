@@ -33,7 +33,7 @@ module.exports = {
       await new Promise(resolve => setTimeout(resolve, 1000)); // 1 second delay
 
       // Test 8-day reminder
-      await channel.send(`<@&${process.env.EVENTS_ROLE_ID}> Please have the event details ready for marketing`);
+      await channel.send(`<@&${process.env.EVENTS_ROLE_ID}> Please have the event details ready for marketing for **${event.name}**`);
       await new Promise(resolve => setTimeout(resolve, 1000));
 
       // Test 7-day reminder
