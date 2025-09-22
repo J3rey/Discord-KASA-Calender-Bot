@@ -16,34 +16,63 @@ const client = new Client({
 // Initialize command handler
 const commandHandler = new CommandHandler();
 
-// Bot ready event
+// MongoDB connection function
+async function connectToMongoDB() {
+  try {
+    await mongoose.connect(process.env.MONGO_URI, {
+      serverSelectionTimeoutMS: 5000,
+      family: 4,
+      ssl: true,
+      tls: true,
+      tlsAllowInvalidCertificates: true,
+      serverApi: {
+        version: "1",
+        strict: true,
+        deprecationErrors: true,
+      },
+    });
+    console.log("Connected to MongoDB");
+    return true;
+  } catch (error) {
+    console.error("MongoDB connection error:", error);
+    return false;
+  }
+}
+
+// Bot ready event with MongoDB connection check
 client.once("ready", async () => {
   console.log(`Logged in as ${client.user.tag}`);
 
-  // Initialize reminders for all upcoming events
+  // Try to connect to MongoDB
+  const isConnected = await connectToMongoDB();
+  if (!isConnected) {
+    console.error("Failed to connect to MongoDB. Bot will exit.");
+    process.exit(1);
+  }
+
+  // Initialize reminders only after successful MongoDB connection
   await initializeReminders(client);
 });
 
-// Connect to MongoDB with Node.js 18+ compatible options
-mongoose
-  .connect(process.env.MONGO_URI, {
-    serverSelectionTimeoutMS: 5000,
-    family: 4, // Use IPv4, skip trying IPv6
-    serverApi: {
-      version: "1",
-      strict: true,
-      deprecationErrors: true,
-    },
-  })
-  .then(() => console.log("Connected to MongoDB"))
-  .catch((error) => {
-    console.error("MongoDB connection error:", error);
-    process.exit(1);
-  });
-
 // Handle incoming messages
 client.on("messageCreate", async (message) => {
+  // Check MongoDB connection before handling commands
+  if (mongoose.connection.readyState !== 1) {
+    console.log("MongoDB disconnected, attempting to reconnect...");
+    await connectToMongoDB();
+  }
   await commandHandler.handleMessage(message, "/");
+});
+
+// MongoDB connection error handler
+mongoose.connection.on("error", (err) => {
+  console.error("MongoDB connection error:", err);
+});
+
+// MongoDB disconnection handler
+mongoose.connection.on("disconnected", () => {
+  console.log("MongoDB disconnected. Attempting to reconnect...");
+  connectToMongoDB();
 });
 
 // Login to Discord
